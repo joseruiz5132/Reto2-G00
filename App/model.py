@@ -52,10 +52,54 @@ def new_data_structs():
     manera vacía para posteriormente almacenar la información.
     """
     #TODO: Inicializar las estructuras de datos
-    pass
+    data_structs = {
+        'jobs': None,
+        'skills': None,
+        'employment-types': None,
+        'multilocations': None,
+        'year_experience': None,
+        'map_jobs': None,
+        'map_skills': None,
+        'map_employment-types': None,
+        'map_multilocations': None,
+        'map_companies': None,
+        'map_cities': None
+    }
 
+    data_structs['jobs'] = lt.newList('ARRAY_LIST', compare_map_name)
+    data_structs['skills'] = lt.newList('ARRAY_LIST', compare_map_name)
+    data_structs['employment-types'] = lt.newList('ARRAY_LIST', compare_map_name)
+    data_structs['multilocations'] = lt.newList('ARRAY_LIST', compare_map_name)
+    data_structs['map_jobs'] = mp.newMap(100, maptype='PROBING', cmpfunction=compare_map_name)
+    data_structs['map_skills'] = mp.newMap(100, maptype='PROBING', cmpfunction=compare_map_name)
+    data_structs['map_employment-types'] = mp.newMap(100, maptype='PROBING', cmpfunction=compare_map_name)
+    data_structs['map_multilocations'] = mp.newMap(100, maptype='PROBING', cmpfunction=compare_map_name)
+    data_structs['year_experience'] = mp.newMap(100, maptype='PROBING', cmpfunction=compare_map_name)
+    data_structs['map_companies'] = mp.newMap(100, maptype='PROBING', cmpfunction=compare_map_name)
+    data_structs['map_cities'] = mp.newMap(100, maptype='PROBING', cmpfunction=compare_map_name)
 
-# Funciones para agregar informacion al modelo
+    return data_structs
+
+def add_job(data_structs, job):
+ 
+    lt.addLast(data_structs['jobs'], job)
+    entry = mp.get(data_structs['year_experience'], job['published_at'].year)
+    if entry:
+        year_info = me.getValue(entry)
+    else:
+        year_info = {
+            'junior': lt.newList('ARRAY_LIST', compare_map_name),
+            'mid': lt.newList('ARRAY_LIST', compare_map_name),
+            'senior': lt.newList('ARRAY_LIST', compare_map_name)
+        }
+        mp.put(data_structs['year_experience'], job['published_at'].year, year_info)
+    mp.put(data_structs['map_jobs'], job['id'], job)
+    
+    add_city(data_structs, job)
+    add_company(data_structs, job)
+
+    lt.addLast(year_info[job['experience_level']], job)
+
 
 def add_data(data_structs, data):
     """
@@ -65,7 +109,51 @@ def add_data(data_structs, data):
     pass
 
 
-# Funciones para creacion de datos
+def add_skill(data_structs, skill):
+    """
+    Función para agregar nuevas habilidades a la lista
+    """
+    lt.addLast(data_structs['skills'], skill)
+    mp.put(data_structs['map_skills'], skill['id'], skill)
+
+def add_employment_type(data_structs, employment_type):
+    """
+    Función para agregar nuevos tipos de empleo a la lista
+    """
+    lt.addLast(data_structs['employment-types'], employment_type)
+    mp.put(data_structs['map_employment-types'], employment_type['id'], employment_type)
+
+def add_multilocation(data_structs, multilocation):
+    """
+    Función para agregar nuevas ubicaciones a la lista
+    """
+    lt.addLast(data_structs['multilocations'], multilocation)
+    mp.put(data_structs['map_multilocations'], multilocation['id'], multilocation)
+
+def add_city(data_structs, job):
+    """
+    Función para agregar nuevas ciudades a la lista
+    """
+    entry = mp.get(data_structs['map_cities'], job['city'])
+    if not entry:
+        city_info = lt.newList('ARRAY_LIST', compare_map_name)
+        mp.put(data_structs['map_cities'], job['city'], city_info)
+    else:
+        city_info = me.getValue(entry)
+    lt.addLast(city_info, job)
+
+def add_company(data_structs, job):
+    """
+    Función para agregar nuevas empresas a la lista
+    """
+    entry = mp.get(data_structs['map_companies'], job['company_name'])
+    if not entry:
+        company_info = lt.newList('ARRAY_LIST', compare_map_name)
+        mp.put(data_structs['map_companies'], job['company_name'], company_info)
+    else:
+        company_info = me.getValue(entry)
+    lt.addLast(company_info, job)
+
 
 def new_data(id, info):
     """
@@ -109,12 +197,27 @@ def req_2(data_structs):
     pass
 
 
-def req_3(data_structs):
+def req_3(data_structs, company_name, initial_date, final_date):
     """
     Función que soluciona el requerimiento 3
     """
     # TODO: Realizar el requerimiento 3
-    pass
+    jobs_company = me.getValue(mp.get(data_structs['map_companies'], company_name))
+    total_offers = 0
+    experience_offers = {
+        'junior': 0,
+        'mid': 0,
+        'senior': 0
+    }
+    offers = lt.newList('ARRAY_LIST', compare_map_name)
+    for job in lt.iterator(jobs_company):
+        if initial_date <= job['published_at'] and job['published_at'] <= final_date:
+            total_offers += 1
+            experience_offers[job['experience_level']] += 1
+            lt.addLast(offers, job)
+    
+    merg.sort(offers, sort_req3)
+    return total_offers, experience_offers, offers
 
 
 def req_4(data_structs):
