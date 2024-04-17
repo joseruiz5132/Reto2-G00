@@ -1,4 +1,4 @@
-﻿"""
+"""
  * Copyright 2020, Departamento de sistemas y Computación,
  * Universidad de Los Andes
  *
@@ -25,6 +25,8 @@ import model
 import time
 import csv
 import tracemalloc
+from datetime import datetime
+from DISClib.ADT import list as lt
 
 """
 El controlador se encarga de mediar entre la vista y el modelo.
@@ -36,18 +38,85 @@ def new_controller():
     Crea una instancia del modelo
     """
     #TODO: Llamar la función del modelo que crea las estructuras de datos
-    pass
+    control = {
+        'model': None
+    }
+    control['model'] = model.new_data_structs()
+    return control
 
 
 # Funciones para la carga de datos
 
-def load_data(control, filename):
+def load_data(control, filesize='10-por'):
     """
     Carga los datos del reto
     """
     # TODO: Realizar la carga de datos
-    pass
+    
+    jobs = load_jobs(control, filesize)
+    skills = load_skills(control, filesize)
+    employment_types = load_employment_types(control, filesize)
+    multilocations = load_multilocations(control, filesize)
 
+    return jobs, skills, employment_types, multilocations
+
+
+
+def load_jobs(control, filesize):
+    """
+    Carga los datos de los trabajos
+    """
+    jobs_dir = cf.data_dir+ filesize + "-jobs.csv"
+    input_file = csv.DictReader(open(jobs_dir, encoding="utf-8"), delimiter=';')
+    for job in input_file:
+        job['published_at'] = datetime.strptime(job['published_at'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        job['open_to_hire_ukrainians'] = str(job['open_to_hire_ukrainians']).lower()
+        model.add_job(control['model'], job)  
+    return lt.size(control['model']['jobs'])
+
+def load_skills(control, filesize):
+    """
+    Carga los datos de las habilidades
+    """
+    skills_dir = cf.data_dir+ filesize + "-skills.csv"
+    input_file = csv.DictReader(open(skills_dir, encoding="utf-8"), delimiter=';')
+    for skill in input_file:
+        skill['level'] = int(skill['level'])
+        model.add_skill(control['model'], skill)
+
+    return lt.size(control['model']['skills'])
+
+def load_employment_types(control, filesize):
+    """
+    Carga los datos de los tipos de empleo
+    """
+    employment_types_dir = cf.data_dir+ filesize + "-employments_types.csv"
+    input_file = csv.DictReader(open(employment_types_dir, encoding="utf-8"), delimiter=';')
+    for employment_type in input_file:
+        try:
+            employment_type['salary_from'] = int(employment_type['salary_from'])
+        except:
+            employment_type['salary_from'] = 0
+        
+        try:
+            employment_type['salary_to'] = int(employment_type['salary_to'])
+        except:
+            employment_type['salary_to'] = 0
+
+        model.add_employment_type(control['model'], employment_type)
+
+    return lt.size(control['model']['employment-types'])
+
+def load_multilocations(control, filesize):
+    """
+    Carga los datos de las locaciones
+    """
+    multilocations_dir = cf.data_dir + filesize + "-multilocations.csv"
+    input_file = csv.DictReader(open(multilocations_dir, encoding="utf-8"), delimiter=';')
+    for multilocation in input_file:
+        model.add_multilocation(control['model'], multilocation)
+    
+    return lt.size(control['model']['multilocations'])
 
 # Funciones de ordenamiento
 
@@ -60,6 +129,14 @@ def sort(control):
 
 
 # Funciones de consulta sobre el catálogo
+def get_first_last(list):
+    filtered = lt.newList("ARRAY_LIST")
+    for i in range(1, 6):
+        lt.addLast(filtered, lt.getElement(list, i))
+    for i in range(-4, 1):
+        lt.addLast(filtered, lt.getElement(list, i))
+    return filtered
+
 
 def get_data(control, id):
     """
@@ -85,12 +162,15 @@ def req_2(control):
     pass
 
 
-def req_3(control):
+def req_3(control, company_name, initial_date, final_date):
     """
     Retorna el resultado del requerimiento 3
     """
     # TODO: Modificar el requerimiento 3
-    pass
+    i_date = datetime.strptime(initial_date, '%Y-%m-%d')
+    f_date = datetime.strptime(final_date, '%Y-%m-%d')
+    total_offers, experience_offers, offers = model.req_3(control['model'], company_name, i_date, f_date)
+    return total_offers, experience_offers, offers
 
 
 def req_4(control):
@@ -101,19 +181,24 @@ def req_4(control):
     pass
 
 
-def req_5(control):
+def req_5(control, city_name, initial_date, final_date):
     """
     Retorna el resultado del requerimiento 5
     """
     # TODO: Modificar el requerimiento 5
     pass
+    i_date = datetime.strptime(initial_date, '%Y-%m-%d')
+    f_date = datetime.strptime(final_date, '%Y-%m-%d')
+    total_offers, total_companies, max_info, min_info, offers = model.req_5(control['model'], city_name, i_date, f_date)
+    return total_offers, total_companies, max_info, min_info, offers
 
-def req_6(control):
+def req_6(control, n_cities, experience_level, year):
     """
     Retorna el resultado del requerimiento 6
     """
     # TODO: Modificar el requerimiento 6
-    pass
+    answer_list = model.req_6(control['model'], n_cities, experience_level, year)
+    return answer_list
 
 
 def req_7(control):
